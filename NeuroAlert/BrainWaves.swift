@@ -4,6 +4,8 @@
 //
 //  Created by Spencer Osborn on 2025-10-05.
 //
+import Foundation
+
 struct BrainWaves: Codable, Identifiable {
     var id = UUID()
     var alpha: Double
