@@ -20,10 +20,6 @@ struct BrainWaves: Codable, Identifiable {
     }
 }
 
-
-
 struct BrainWavesLast10: Codable {
     var brainWaves: [BrainWaves]
 }
-
-
