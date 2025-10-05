@@ -44,6 +44,8 @@ class BrainWaveViewModel: ObservableObject {
 
                 // After initial load, start listening for new data
                 self.listenForNewWaves()
+            } withCancel: { error in
+                print("❌ Firebase error:", error.localizedDescription)
             }
     }
 
@@ -66,14 +68,20 @@ class BrainWaveViewModel: ObservableObject {
 
     private func decodeWave(from value: [String: Any]) -> BrainWaves? {
         do {
-            let data = try JSONSerialization.data(withJSONObject: value)
-            var decoded = try JSONDecoder().decode(BrainWaves.self, from: data)
-            if let ts = value["timestamp"] as? String,
-               let date = ISO8601DateFormatter().date(from: ts) {
-                decoded.timestamp = date
-            } else {
-                decoded.timestamp = Date()
+            // ✅ Handle timestamp separately before JSON decoding
+            var mutableValue = value
+            
+            // Convert timestamp string to Date if it exists
+            if let timestampString = value["timestamp"] as? String {
+                if let date = ISO8601DateFormatter().date(from: timestampString) {
+                    mutableValue["timestamp"] = date.timeIntervalSince1970 // Convert to timestamp
+                } else {
+                    mutableValue["timestamp"] = Date().timeIntervalSince1970
+                }
             }
+            
+            let data = try JSONSerialization.data(withJSONObject: mutableValue)
+            let decoded = try JSONDecoder().decode(BrainWaves.self, from: data)
             return decoded
         } catch {
             print("❌ Error decoding brain waves:", error)
@@ -82,9 +90,11 @@ class BrainWaveViewModel: ObservableObject {
     }
 
     private func enqueue(_ newWave: BrainWaves) {
-        recentWaves.append(newWave)
-        if recentWaves.count > maxStored {
-            recentWaves.removeFirst(recentWaves.count - maxStored)
+        DispatchQueue.main.async {
+            self.recentWaves.append(newWave)
+            if self.recentWaves.count > self.maxStored {
+                self.recentWaves.removeFirst(self.recentWaves.count - self.maxStored)
+            }
         }
     }
 }
